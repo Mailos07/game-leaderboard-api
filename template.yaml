@@ -1,0 +1,158 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Real-Time Multiplayer Game Leaderboard API
+  CSC 575 / SER 375 - Option B: Developing NoSQL Solutions
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: java17
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref LeaderboardTable
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,DELETE,OPTIONS'"
+      AllowHeaders: "'Content-Type'"
+      AllowOrigin: "'*'"
+
+Resources:
+
+  # ─── DynamoDB Table ───
+  # This is the heart of the system. One table stores everything:
+  # scores, player info, and game metadata.
+  LeaderboardTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: GameLeaderboard
+      BillingMode: PAY_PER_REQUEST          # On-demand = no capacity planning, free tier friendly
+      AttributeDefinitions:
+        - AttributeName: PK                  # Partition key (e.g., "GAME#battle-royale")
+          AttributeType: S
+        - AttributeName: SK                  # Sort key (e.g., "SCORE#0000009500#player123")
+          AttributeType: S
+        - AttributeName: GSI1PK             # For per-player lookups
+          AttributeType: S
+        - AttributeName: GSI1SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1                    # Lets us query "show me all scores for player X"
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  # ─── Lambda: Submit Score ───
+  SubmitScoreFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.leaderboard.handlers.SubmitScoreHandler::handleRequest
+      CodeUri: target/game-leaderboard-api-1.0.0.jar
+      Description: Validates and writes a player score to DynamoDB
+      SnapStart:
+        ApplyOn: PublishedVersions        # Reduces Java cold start from ~3s to ~200ms
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref LeaderboardTable
+      Events:
+        SubmitScore:
+          Type: Api
+          Properties:
+            Path: /scores
+            Method: post
+
+  # ─── Lambda: Get Leaderboard ───
+  GetLeaderboardFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.leaderboard.handlers.GetLeaderboardHandler::handleRequest
+      CodeUri: target/game-leaderboard-api-1.0.0.jar
+      Description: Returns ranked leaderboard for a given game
+      SnapStart:
+        ApplyOn: PublishedVersions
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref LeaderboardTable
+      Events:
+        GetLeaderboard:
+          Type: Api
+          Properties:
+            Path: /leaderboard/{gameId}
+            Method: get
+
+  # ─── Lambda: Get Player Rank ───
+  GetPlayerRankFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.leaderboard.handlers.GetPlayerRankHandler::handleRequest
+      CodeUri: target/game-leaderboard-api-1.0.0.jar
+      Description: Returns a specific player's rank and nearby players
+      SnapStart:
+        ApplyOn: PublishedVersions
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref LeaderboardTable
+      Events:
+        GetPlayerRank:
+          Type: Api
+          Properties:
+            Path: /leaderboard/{gameId}/player/{playerId}
+            Method: get
+
+  # ─── Lambda: Get Player History ───
+  GetPlayerHistoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.leaderboard.handlers.GetPlayerHistoryHandler::handleRequest
+      CodeUri: target/game-leaderboard-api-1.0.0.jar
+      Description: Returns all scores submitted by a specific player
+      SnapStart:
+        ApplyOn: PublishedVersions
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref LeaderboardTable
+      Events:
+        GetPlayerHistory:
+          Type: Api
+          Properties:
+            Path: /players/{playerId}/scores
+            Method: get
+
+  # ─── Lambda: Delete Score ───
+  DeleteScoreFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.leaderboard.handlers.DeleteScoreHandler::handleRequest
+      CodeUri: target/game-leaderboard-api-1.0.0.jar
+      Description: Removes a specific score entry (admin use)
+      SnapStart:
+        ApplyOn: PublishedVersions
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref LeaderboardTable
+      Events:
+        DeleteScore:
+          Type: Api
+          Properties:
+            Path: /scores/{gameId}/{scoreId}
+            Method: delete
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  LeaderboardTableName:
+    Description: DynamoDB table name
+    Value: !Ref LeaderboardTable
