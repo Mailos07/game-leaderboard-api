@@ -36,9 +36,9 @@ public class DynamoDbHelper {
      *
      * Key trick: we INVERT the score in the sort key so that a default
      * ascending Query returns highest scores first.
-     *   e.g., score=9500 → inverted=0000500 (9999999 - 9500 = 9999499, padded)
-     *        score=100  → inverted=9999899
-     * So when DynamoDB sorts ascending: 0000500 comes before 9999899 → higher score first.
+     *   e.g., score=9500 -> inverted=0000500 (9999999 - 9500 = 9999499, padded)
+     *        score=100  -> inverted=9999899
+     * So when DynamoDB sorts ascending: 0000500 comes before 9999899 -> higher score first.
      */
     public void putScore(ScoreEntry entry) {
         int invertedScore = MAX_SCORE - entry.getScore();
@@ -72,7 +72,9 @@ public class DynamoDbHelper {
      * Queries the top N scores for a given game.
      *
      * Because the sort key uses inverted scores, a simple ascending query
-     * returns the highest scores first — no need for ScanIndexForward=false.
+     * returns the highest scores first -- no need for ScanIndexForward=false.
+     *
+     * Now includes the sort key (scoreId) so the admin panel can delete entries.
      */
     public List<Map<String, Object>> getLeaderboard(String gameId, int limit) {
         QueryRequest request = QueryRequest.builder()
@@ -96,6 +98,7 @@ public class DynamoDbHelper {
             entry.put("playerName", item.get("playerName").s());
             entry.put("score", Integer.parseInt(item.get("score").n()));
             entry.put("timestamp", item.get("timestamp").s());
+            entry.put("scoreId", item.get("SK").s());  // Include sort key for admin delete
             results.add(entry);
         }
         return results;

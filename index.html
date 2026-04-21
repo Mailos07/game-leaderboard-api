@@ -254,6 +254,7 @@
                 <button class="tab active" onclick="switchTab('leaderboard')">🏆 Leaderboard</button>
                 <button class="tab" onclick="switchTab('submit')">⚡ Submit Score</button>
                 <button class="tab" onclick="switchTab('player')">🔍 Player Lookup</button>
+                <button class="tab" onclick="switchTab('admin')">🛡️ Admin</button>
             </div>
         </div>
     </div>
@@ -315,10 +316,24 @@
             </div>
             <div id="player-content"></div>
         </div>
+
+        <!-- Admin View -->
+        <div id="view-admin" class="hidden">
+            <div style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:8px; padding:12px 16px; margin-bottom:20px; display:flex; align-items:center; gap:8px;">
+                <span style="font-size:18px;">⚠️</span>
+                <span style="font-size:13px; color:#fca5a5;">Admin mode — deletions are permanent and cannot be undone.</span>
+            </div>
+
+            <div class="lb-header">
+                <h2>🛡️ Manage Players — <span id="admin-game-name">battle-royale</span></h2>
+                <button class="refresh-btn" onclick="fetchAdminList()">↻ Refresh</button>
+            </div>
+            <div id="admin-content"></div>
+        </div>
     </div>
 
     <div class="footer">
-        Blessings & Sudan Cloud Computing — Powered by DynamoDB • Lambda • API Gateway
+        CSC 575 / SER 375 — Cloud Computing — Powered by DynamoDB • Lambda • API Gateway
     </div>
 
     <script>
@@ -339,14 +354,16 @@
         function switchTab(tab) {
             currentTab = tab;
             document.querySelectorAll(".tab").forEach((el, i) => {
-                const tabs = ["leaderboard", "submit", "player"];
+                const tabs = ["leaderboard", "submit", "player", "admin"];
                 el.classList.toggle("active", tabs[i] === tab);
             });
             document.getElementById("view-leaderboard").classList.toggle("hidden", tab !== "leaderboard");
             document.getElementById("view-submit").classList.toggle("hidden", tab !== "submit");
             document.getElementById("view-player").classList.toggle("hidden", tab !== "player");
+            document.getElementById("view-admin").classList.toggle("hidden", tab !== "admin");
 
             if (tab === "leaderboard") fetchLeaderboard();
+            if (tab === "admin") fetchAdminList();
         }
 
         // ── Game selector ──
@@ -356,7 +373,9 @@
                 el.classList.toggle("active", el.textContent.trim() === game);
             });
             document.getElementById("lb-game-name").textContent = game;
+            document.getElementById("admin-game-name").textContent = game;
             if (currentTab === "leaderboard") fetchLeaderboard();
+            if (currentTab === "admin") fetchAdminList();
         }
 
         // ── Fetch Leaderboard ──
@@ -514,6 +533,88 @@
             } catch (err) {
                 container.innerHTML = '<div class="empty"><div class="big">❌</div><p>Lookup failed</p></div>';
                 showToast("Lookup failed", "error");
+            }
+        }
+
+        // ── Admin: Fetch player list with delete buttons ──
+        async function fetchAdminList() {
+            const container = document.getElementById("admin-content");
+            container.innerHTML = '<div class="loading"><span class="spinner">⚡</span><br>Loading...</div>';
+
+            try {
+                const res = await fetch(`${API}/leaderboard/${currentGame}?limit=100`);
+                const data = await res.json();
+                const entries = data.entries || [];
+
+                if (entries.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty">
+                            <div class="big">📭</div>
+                            <p>No players in <strong>${currentGame}</strong></p>
+                        </div>`;
+                    return;
+                }
+
+                let html = `<div style="display:grid; grid-template-columns:50px 1fr 1fr 120px 100px; padding:8px 16px; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:1px;">
+                    <span>Rank</span><span>Player</span><span>ID</span>
+                    <span style="text-align:right">Score</span>
+                    <span style="text-align:center">Action</span>
+                </div>`;
+
+                entries.forEach((e, i) => {
+                    const scoreIdEncoded = encodeURIComponent(e.scoreId || "");
+                    html += `<div class="entry" id="admin-row-${i}" style="grid-template-columns:50px 1fr 1fr 120px 100px;">
+                        <span class="rank normal">#${e.rank}</span>
+                        <span class="name" style="color:#e2e8f0;">${e.playerName}</span>
+                        <span class="pid">${e.playerId}</span>
+                        <span class="score">${e.score.toLocaleString()}</span>
+                        <span style="text-align:center;">
+                            <button onclick="deletePlayer('${currentGame}', '${scoreIdEncoded}', '${e.playerName}', ${i})"
+                                style="padding:4px 12px; border:1px solid rgba(239,68,68,0.4); border-radius:4px;
+                                background:rgba(239,68,68,0.1); color:#f87171; font-size:11px; font-weight:600;
+                                cursor:pointer; transition:all 0.2s;"
+                                onmouseover="this.style.background='rgba(239,68,68,0.3)'"
+                                onmouseout="this.style.background='rgba(239,68,68,0.1)'"
+                            >Delete</button>
+                        </span>
+                    </div>`;
+                });
+
+                container.innerHTML = html;
+            } catch (err) {
+                container.innerHTML = '<div class="empty"><div class="big">❌</div><p>Failed to load players</p></div>';
+            }
+        }
+
+        // ── Admin: Delete a player's score ──
+        async function deletePlayer(gameId, scoreIdEncoded, playerName, rowIndex) {
+            if (!confirm(`Are you sure you want to delete ${playerName}'s score from ${gameId}? This cannot be undone.`)) {
+                return;
+            }
+
+            const scoreId = decodeURIComponent(scoreIdEncoded);
+
+            try {
+                const res = await fetch(`${API}/scores/${gameId}/${encodeURIComponent(scoreId)}`, {
+                    method: "DELETE",
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    showToast(`Deleted ${playerName}'s score`);
+                    const row = document.getElementById(`admin-row-${rowIndex}`);
+                    if (row) {
+                        row.style.opacity = "0.3";
+                        row.style.pointerEvents = "none";
+                        row.style.textDecoration = "line-through";
+                    }
+                    // Refresh after a short delay
+                    setTimeout(() => fetchAdminList(), 1000);
+                } else {
+                    showToast(data.error || "Delete failed", "error");
+                }
+            } catch (err) {
+                showToast("Network error during delete", "error");
             }
         }
 
