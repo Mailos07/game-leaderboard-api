@@ -6,61 +6,35 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
-/**
- * Handles all DynamoDB interactions.
- *
- * We use the low-level DynamoDB client (not the enhanced client) because
- * it gives us more control over key construction and query expressions,
- * which matters a lot for the composite sort key pattern we're using.
- */
 public class DynamoDbHelper {
 
     private final DynamoDbClient client;
     private final String tableName;
-
-    // Score is inverted so that DynamoDB's default ascending sort gives us
-    // highest scores first. Max score of 9,999,999 is assumed.
+    private final String statsTableName;
     private static final int MAX_SCORE = 9999999;
 
     public DynamoDbHelper() {
-        this.client = DynamoDbClient.builder()
-                .region(Region.US_EAST_1)
-                .build();
+        this.client = DynamoDbClient.builder().region(Region.US_EAST_1).build();
         this.tableName = System.getenv("TABLE_NAME");
+        this.statsTableName = System.getenv("STATS_TABLE_NAME");
     }
 
-    /**
-     * Writes a score to DynamoDB.
-     *
-     * Key trick: we INVERT the score in the sort key so that a default
-     * ascending Query returns highest scores first.
-     *   e.g., score=9500 -> inverted=0000500 (9999999 - 9500 = 9999499, padded)
-     *        score=100  -> inverted=9999899
-     * So when DynamoDB sorts ascending: 0000500 comes before 9999899 -> higher score first.
-     */
     public void putScore(ScoreEntry entry) {
         int invertedScore = MAX_SCORE - entry.getScore();
         String paddedInverted = String.format("%07d", invertedScore);
 
         Map<String, AttributeValue> item = new HashMap<>();
-        // Main table keys
         item.put("PK", AttributeValue.fromS("GAME#" + entry.getGameId()));
         item.put("SK", AttributeValue.fromS("SCORE#" + paddedInverted + "#" + entry.getPlayerId() + "#" + entry.getTimestamp()));
-
-        // GSI keys for player lookups
         item.put("GSI1PK", AttributeValue.fromS("PLAYER#" + entry.getPlayerId()));
         item.put("GSI1SK", AttributeValue.fromS("GAME#" + entry.getGameId() + "#" + entry.getTimestamp()));
-
-        // Data attributes
         item.put("playerId", AttributeValue.fromS(entry.getPlayerId()));
         item.put("playerName", AttributeValue.fromS(entry.getPlayerName()));
         item.put("gameId", AttributeValue.fromS(entry.getGameId()));
         item.put("score", AttributeValue.fromN(String.valueOf(entry.getScore())));
         item.put("timestamp", AttributeValue.fromS(entry.getTimestamp()));
 
-        // Conditional write: prevent exact duplicates (same player, game, timestamp)
         client.putItem(PutItemRequest.builder()
                 .tableName(tableName)
                 .item(item)
@@ -68,14 +42,6 @@ public class DynamoDbHelper {
                 .build());
     }
 
-    /**
-     * Queries the top N scores for a given game.
-     *
-     * Because the sort key uses inverted scores, a simple ascending query
-     * returns the highest scores first -- no need for ScanIndexForward=false.
-     *
-     * Now includes the sort key (scoreId) so the admin panel can delete entries.
-     */
     public List<Map<String, Object>> getLeaderboard(String gameId, int limit) {
         QueryRequest request = QueryRequest.builder()
                 .tableName(tableName)
@@ -88,7 +54,6 @@ public class DynamoDbHelper {
                 .build();
 
         QueryResponse response = client.query(request);
-
         List<Map<String, Object>> results = new ArrayList<>();
         int rank = 1;
         for (Map<String, AttributeValue> item : response.items()) {
@@ -98,26 +63,15 @@ public class DynamoDbHelper {
             entry.put("playerName", item.get("playerName").s());
             entry.put("score", Integer.parseInt(item.get("score").n()));
             entry.put("timestamp", item.get("timestamp").s());
-            entry.put("scoreId", item.get("SK").s());  // Include sort key for admin delete
+            entry.put("pk", item.get("PK").s());
+            entry.put("sk", item.get("SK").s());
             results.add(entry);
         }
         return results;
     }
 
-    /**
-     * Finds a specific player's position in a game's leaderboard.
-     *
-     * This is a two-step process:
-     * 1. Query all scores for the game (up to a reasonable limit)
-     * 2. Find the player's position and return nearby entries
-     *
-     * In production you'd use a more efficient approach (like maintaining
-     * a rank counter), but this works fine for our demo scale.
-     */
     public Map<String, Object> getPlayerRank(String gameId, String playerId) {
-        // Get all scores for this game (capped at 1000 for demo purposes)
         List<Map<String, Object>> allScores = getLeaderboard(gameId, 1000);
-
         Map<String, Object> result = new LinkedHashMap<>();
         int playerIndex = -1;
 
@@ -139,17 +93,12 @@ public class DynamoDbHelper {
         result.put("totalPlayers", allScores.size());
         result.put("playerEntry", allScores.get(playerIndex));
 
-        // Nearby players: 2 above and 2 below
         int start = Math.max(0, playerIndex - 2);
         int end = Math.min(allScores.size(), playerIndex + 3);
         result.put("nearby", allScores.subList(start, end));
-
         return result;
     }
 
-    /**
-     * Gets all scores for a specific player across all games (via GSI1).
-     */
     public List<Map<String, Object>> getPlayerHistory(String playerId) {
         QueryRequest request = QueryRequest.builder()
                 .tableName(tableName)
@@ -161,7 +110,6 @@ public class DynamoDbHelper {
                 .build();
 
         QueryResponse response = client.query(request);
-
         List<Map<String, Object>> results = new ArrayList<>();
         for (Map<String, AttributeValue> item : response.items()) {
             Map<String, Object> entry = new LinkedHashMap<>();
@@ -175,20 +123,83 @@ public class DynamoDbHelper {
     }
 
     /**
-     * Deletes a specific score by gameId and scoreId (the full sort key).
+     * Deletes a score using the exact PK and SK from the database.
+     * This is the correct way — using the primary key directly.
      */
-    public boolean deleteScore(String gameId, String scoreId) {
+    public boolean deleteScore(String pk, String sk) {
         try {
             client.deleteItem(DeleteItemRequest.builder()
                     .tableName(tableName)
                     .key(Map.of(
-                            "PK", AttributeValue.fromS("GAME#" + gameId),
-                            "SK", AttributeValue.fromS(scoreId)
+                            "PK", AttributeValue.fromS(pk),
+                            "SK", AttributeValue.fromS(sk)
                     ))
+                    .conditionExpression("attribute_exists(PK)")
                     .build());
             return true;
+        } catch (ConditionalCheckFailedException e) {
+            return false;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Reads best players from the stats cache table.
+     */
+    public List<Map<String, Object>> getBestPlayers() {
+        if (statsTableName == null) return new ArrayList<>();
+
+        try {
+            QueryRequest request = QueryRequest.builder()
+                    .tableName(statsTableName)
+                    .keyConditionExpression("PK = :pk")
+                    .expressionAttributeValues(Map.of(
+                            ":pk", AttributeValue.fromS("BEST_PLAYERS")
+                    ))
+                    .build();
+
+            QueryResponse response = client.query(request);
+            List<Map<String, Object>> results = new ArrayList<>();
+
+            for (Map<String, AttributeValue> item : response.items()) {
+                Map<String, Object> entry = new LinkedHashMap<>();
+                entry.put("gameId", item.containsKey("gameId") ? item.get("gameId").s() : "unknown");
+                entry.put("playerId", item.containsKey("playerId") ? item.get("playerId").s() : "unknown");
+                entry.put("playerName", item.containsKey("playerName") ? item.get("playerName").s() : "unknown");
+                entry.put("bestScore", item.containsKey("bestScore") ? Integer.parseInt(item.get("bestScore").n()) : 0);
+                entry.put("lastUpdated", item.containsKey("lastUpdated") ? item.get("lastUpdated").s() : "");
+                results.add(entry);
+            }
+            return results;
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Updates the best player stats cache for a specific game.
+     * Called by the Stream processor automatically.
+     */
+    public void updateBestPlayer(String gameId, String playerId, String playerName, int score, String timestamp) {
+        if (statsTableName == null) return;
+
+        try {
+            Map<String, AttributeValue> item = new HashMap<>();
+            item.put("PK", AttributeValue.fromS("BEST_PLAYERS"));
+            item.put("SK", AttributeValue.fromS("GAME#" + gameId));
+            item.put("gameId", AttributeValue.fromS(gameId));
+            item.put("playerId", AttributeValue.fromS(playerId));
+            item.put("playerName", AttributeValue.fromS(playerName));
+            item.put("bestScore", AttributeValue.fromN(String.valueOf(score)));
+            item.put("lastUpdated", AttributeValue.fromS(timestamp));
+
+            client.putItem(PutItemRequest.builder()
+                    .tableName(statsTableName)
+                    .item(item)
+                    .build());
+        } catch (Exception e) {
+            // Log but don't fail
         }
     }
 }

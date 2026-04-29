@@ -6,262 +6,110 @@
     <title>Game Leaderboard — CSC 575</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 40%, #0d1b2a 100%);
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            color: #e2e8f0;
-        }
-
-        /* Scanline overlay */
-        body::after {
-            content: '';
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            pointer-events: none; z-index: 100;
-            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
-        }
-
-        .header {
-            padding: 24px 32px;
-            background: linear-gradient(180deg, rgba(59,130,246,0.15) 0%, transparent 100%);
-            border-bottom: 1px solid rgba(59,130,246,0.2);
-        }
+        body { min-height: 100vh; background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 40%, #0d1b2a 100%); font-family: 'Segoe UI', system-ui, sans-serif; color: #e2e8f0; }
+        body::after { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 100; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px); }
+        .header { padding: 24px 32px; background: linear-gradient(180deg, rgba(59,130,246,0.15) 0%, transparent 100%); border-bottom: 1px solid rgba(59,130,246,0.2); }
         .header-inner { max-width: 1000px; margin: 0 auto; }
         .header-top { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
         .header-top .icon { font-size: 32px; }
-        .header h1 {
-            font-size: 28px; font-weight: 800;
-            background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            letter-spacing: -0.5px;
-        }
+        .header h1 { font-size: 28px; font-weight: 800; background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px; }
         .header .subtitle { font-size: 13px; color: #64748b; padding-left: 44px; }
-
-        /* Tabs */
-        .tabs { display: flex; gap: 4px; margin-top: 20px; padding-left: 44px; }
-        .tab {
-            padding: 8px 20px; border: none; border-radius: 6px 6px 0 0;
-            font-size: 13px; font-weight: 600; cursor: pointer;
-            background: transparent; color: #64748b;
-            border-bottom: 2px solid transparent; transition: all 0.2s;
-        }
+        .tabs { display: flex; gap: 4px; margin-top: 20px; padding-left: 44px; flex-wrap: wrap; }
+        .tab { padding: 8px 20px; border: none; border-radius: 6px 6px 0 0; font-size: 13px; font-weight: 600; cursor: pointer; background: transparent; color: #64748b; border-bottom: 2px solid transparent; transition: all 0.2s; }
         .tab.active { background: rgba(59,130,246,0.2); color: #60a5fa; border-bottom-color: #3b82f6; }
         .tab:hover { color: #94a3b8; }
-
         .main { max-width: 1000px; margin: 0 auto; padding: 24px 32px; }
-
-        /* Game selector */
         .game-selector { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
         .game-label { font-size: 12px; color: #64748b; margin-right: 4px; }
-        .game-btn {
-            padding: 6px 16px; border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 20px; font-size: 12px; font-weight: 600;
-            cursor: pointer; transition: all 0.2s; text-transform: uppercase;
-            letter-spacing: 0.5px; background: rgba(255,255,255,0.03); color: #94a3b8;
-        }
+        .game-btn { padding: 6px 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(255,255,255,0.03); color: #94a3b8; }
         .game-btn.active { background: rgba(59,130,246,0.2); border-color: #3b82f6; color: #60a5fa; }
-
-        /* Leaderboard */
-        .lb-header {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
-        }
+        .lb-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .lb-header h2 { font-size: 18px; font-weight: 700; color: #f1f5f9; }
         .lb-header h2 span { color: #60a5fa; }
-        .refresh-btn {
-            padding: 6px 16px; background: rgba(59,130,246,0.15);
-            border: 1px solid rgba(59,130,246,0.3); border-radius: 6px;
-            color: #60a5fa; font-size: 12px; font-weight: 600; cursor: pointer;
-        }
-
-        .grid-header {
-            display: grid; grid-template-columns: 60px 1fr 1fr 140px 100px;
-            padding: 8px 16px; font-size: 11px; font-weight: 700;
-            color: #475569; text-transform: uppercase; letter-spacing: 1px;
-        }
-        .entry {
-            display: grid; grid-template-columns: 60px 1fr 1fr 140px 100px;
-            align-items: center; padding: 12px 16px; border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.05);
-            background: rgba(255,255,255,0.02); margin-bottom: 6px;
-            transition: all 0.2s;
-        }
+        .refresh-btn { padding: 6px 16px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); border-radius: 6px; color: #60a5fa; font-size: 12px; font-weight: 600; cursor: pointer; }
+        .grid-header { display: grid; grid-template-columns: 60px 1fr 1fr 140px 100px; padding: 8px 16px; font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 1px; }
+        .entry { display: grid; grid-template-columns: 60px 1fr 1fr 140px 100px; align-items: center; padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); margin-bottom: 6px; transition: all 0.2s; }
         .entry:hover { background: rgba(255,255,255,0.04); }
-        .entry.gold {
-            background: linear-gradient(135deg, rgba(250,204,21,0.1), rgba(250,204,21,0.03));
-            border-color: rgba(250,204,21,0.2);
-        }
-        .entry.silver {
-            background: linear-gradient(135deg, rgba(148,163,184,0.1), rgba(148,163,184,0.03));
-            border-color: rgba(148,163,184,0.15);
-        }
-        .entry.bronze {
-            background: linear-gradient(135deg, rgba(217,119,6,0.1), rgba(217,119,6,0.03));
-            border-color: rgba(217,119,6,0.15);
-        }
-        .rank { font-weight: 800; }
-        .rank.medal { font-size: 22px; }
-        .rank.normal { font-size: 14px; color: #64748b; }
-        .name { font-weight: 700; font-size: 15px; }
-        .name.gold { color: #fbbf24; }
-        .name.silver { color: #94a3b8; }
-        .name.bronze { color: #d97706; }
+        .entry.gold { background: linear-gradient(135deg, rgba(250,204,21,0.1), rgba(250,204,21,0.03)); border-color: rgba(250,204,21,0.2); }
+        .entry.silver { background: linear-gradient(135deg, rgba(148,163,184,0.1), rgba(148,163,184,0.03)); border-color: rgba(148,163,184,0.15); }
+        .entry.bronze { background: linear-gradient(135deg, rgba(217,119,6,0.1), rgba(217,119,6,0.03)); border-color: rgba(217,119,6,0.15); }
+        .rank { font-weight: 800; } .rank.medal { font-size: 22px; } .rank.normal { font-size: 14px; color: #64748b; }
+        .name { font-weight: 700; font-size: 15px; } .name.gold { color: #fbbf24; } .name.silver { color: #94a3b8; } .name.bronze { color: #d97706; }
         .pid { font-size: 12px; color: #475569; font-family: monospace; }
-        .score { text-align: right; font-weight: 800; font-size: 18px; font-family: monospace; }
-        .score.top { color: #fbbf24; }
+        .score { text-align: right; font-weight: 800; font-size: 18px; font-family: monospace; } .score.top { color: #fbbf24; }
         .time { text-align: right; font-size: 10px; color: #475569; }
-
-        .empty {
-            text-align: center; padding: 60px 20px;
-            background: rgba(255,255,255,0.02); border-radius: 12px;
-            border: 1px dashed rgba(255,255,255,0.1);
-        }
-        .empty .big { font-size: 48px; margin-bottom: 12px; }
-        .empty p { color: #64748b; }
-
-        /* Submit form */
-        .form-card {
-            max-width: 480px; background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 32px;
-        }
+        .empty { text-align: center; padding: 60px 20px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1); }
+        .empty .big { font-size: 48px; margin-bottom: 12px; } .empty p { color: #64748b; }
+        .form-card { max-width: 480px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 32px; }
         .form-card h2 { margin-bottom: 24px; font-size: 18px; font-weight: 700; }
         .field { margin-bottom: 16px; }
-        .field label {
-            display: block; font-size: 12px; font-weight: 600;
-            color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;
-        }
-        .field input, .field select {
-            width: 100%; padding: 10px 14px; border-radius: 6px;
-            border: 1px solid rgba(255,255,255,0.1);
-            background: rgba(0,0,0,0.3); color: #e2e8f0;
-            font-size: 14px; outline: none;
-        }
-        .field input:focus, .field select:focus {
-            border-color: rgba(59,130,246,0.5);
-            box-shadow: 0 0 0 2px rgba(59,130,246,0.1);
-        }
-        .submit-btn {
-            width: 100%; padding: 12px; border: none; border-radius: 8px;
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            color: #fff; font-size: 15px; font-weight: 700;
-            cursor: pointer; letter-spacing: 0.5px; margin-top: 4px;
-        }
-        .submit-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
-
-        /* Player lookup */
+        .field label { display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .field input, .field select { width: 100%; padding: 10px 14px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #e2e8f0; font-size: 14px; outline: none; }
+        .field input:focus, .field select:focus { border-color: rgba(59,130,246,0.5); box-shadow: 0 0 0 2px rgba(59,130,246,0.1); }
+        .submit-btn, .login-btn { width: 100%; padding: 12px; border: none; border-radius: 8px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; letter-spacing: 0.5px; margin-top: 4px; }
+        .submit-btn:hover, .login-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .danger-btn { background: linear-gradient(135deg, #dc2626, #b91c1c) !important; }
         .search-bar { display: flex; gap: 8px; margin-bottom: 24px; }
-        .search-bar input {
-            flex: 1; padding: 10px 14px; border-radius: 6px;
-            border: 1px solid rgba(255,255,255,0.1);
-            background: rgba(0,0,0,0.3); color: #e2e8f0; font-size: 14px; outline: none;
-        }
-        .search-bar input:focus {
-            border-color: rgba(59,130,246,0.5);
-            box-shadow: 0 0 0 2px rgba(59,130,246,0.1);
-        }
-        .search-btn {
-            padding: 10px 24px; border: none; border-radius: 6px;
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            color: #fff; font-size: 14px; font-weight: 700; cursor: pointer;
-        }
-
-        .rank-card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(59,130,246,0.2);
-            border-radius: 12px; padding: 24px; margin-bottom: 16px;
-        }
+        .search-bar input { flex: 1; padding: 10px 14px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #e2e8f0; font-size: 14px; outline: none; }
+        .search-bar input:focus { border-color: rgba(59,130,246,0.5); box-shadow: 0 0 0 2px rgba(59,130,246,0.1); }
+        .search-btn { padding: 10px 24px; border: none; border-radius: 6px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
+        .rank-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(59,130,246,0.2); border-radius: 12px; padding: 24px; margin-bottom: 16px; }
         .rank-card h3 { margin-bottom: 16px; font-size: 16px; color: #60a5fa; }
         .stats { display: flex; gap: 32px; flex-wrap: wrap; }
         .stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
-        .stat-value { font-size: 36px; font-weight: 800; }
-        .stat-value.rank-num { color: #fbbf24; }
-        .stat-value.total { color: #94a3b8; }
-
+        .stat-value { font-size: 36px; font-weight: 800; } .stat-value.rank-num { color: #fbbf24; } .stat-value.total { color: #94a3b8; }
         .nearby-title { font-size: 12px; color: #64748b; margin: 20px 0 8px; text-transform: uppercase; }
-        .nearby-row {
-            display: flex; justify-content: space-between; padding: 8px 12px;
-            border-radius: 6px; margin-bottom: 4px; background: rgba(255,255,255,0.02);
-            border: 1px solid transparent;
-        }
-        .nearby-row.highlight {
-            background: rgba(59,130,246,0.15);
-            border-color: rgba(59,130,246,0.3);
-            font-weight: 700;
-        }
+        .nearby-row { display: flex; justify-content: space-between; padding: 8px 12px; border-radius: 6px; margin-bottom: 4px; background: rgba(255,255,255,0.02); border: 1px solid transparent; }
+        .nearby-row.highlight { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.3); font-weight: 700; }
         .nearby-score { font-family: monospace; font-weight: 700; }
-
-        .history-card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(139,92,246,0.2);
-            border-radius: 12px; padding: 24px;
-        }
+        .history-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(139,92,246,0.2); border-radius: 12px; padding: 24px; }
         .history-card h3 { margin-bottom: 16px; font-size: 16px; color: #a78bfa; }
-        .history-row {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 10px 12px; border-radius: 6px; margin-bottom: 4px;
-            background: rgba(255,255,255,0.02);
-        }
-        .history-game { font-weight: 600; }
-        .history-time { font-size: 11px; color: #64748b; margin-left: 12px; }
+        .history-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 6px; margin-bottom: 4px; background: rgba(255,255,255,0.02); }
+        .history-game { font-weight: 600; } .history-time { font-size: 11px; color: #64748b; margin-left: 12px; }
         .history-score { font-family: monospace; font-weight: 800; font-size: 16px; }
-
-        /* Toast */
-        .toast {
-            position: fixed; top: 20px; right: 20px; z-index: 200;
-            padding: 12px 24px; border-radius: 8px; color: #fff;
-            font-weight: 600; font-size: 14px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            animation: slideIn 0.3s ease;
-        }
-        .toast.success { background: #059669; }
-        .toast.error { background: #dc2626; }
-
-        .footer {
-            text-align: center; padding: 32px; font-size: 11px; color: #334155;
-            border-top: 1px solid rgba(255,255,255,0.03); margin-top: 40px;
-        }
-
+        .toast { position: fixed; top: 20px; right: 20px; z-index: 200; padding: 12px 24px; border-radius: 8px; color: #fff; font-weight: 600; font-size: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); animation: slideIn 0.3s ease; }
+        .toast.success { background: #059669; } .toast.error { background: #dc2626; }
+        .footer { text-align: center; padding: 32px; font-size: 11px; color: #334155; border-top: 1px solid rgba(255,255,255,0.03); margin-top: 40px; }
         .loading { text-align: center; padding: 60px 0; color: #64748b; }
         .spinner { font-size: 32px; margin-bottom: 8px; animation: spin 1s linear infinite; display: inline-block; }
-
         .hidden { display: none; }
-
-        @keyframes slideIn {
-            from { transform: translateX(100px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
+        .admin-banner { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+        .admin-banner span:first-child { font-size: 18px; }
+        .admin-banner span:last-child { font-size: 13px; color: #fca5a5; }
+        .best-card { background: linear-gradient(135deg, rgba(250,204,21,0.08), rgba(250,204,21,0.02)); border: 1px solid rgba(250,204,21,0.2); border-radius: 12px; padding: 20px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .best-game { font-size: 12px; color: #fbbf24; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; }
+        .best-name { font-size: 20px; font-weight: 800; color: #fbbf24; }
+        .best-score { font-size: 28px; font-weight: 800; font-family: monospace; color: #fbbf24; }
+        .admin-logged-in { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding: 12px 16px; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); border-radius: 8px; }
+        .admin-logged-in .dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; }
+        .logout-btn { padding: 4px 12px; border: 1px solid rgba(239,68,68,0.4); border-radius: 4px; background: rgba(239,68,68,0.1); color: #f87171; font-size: 11px; font-weight: 600; cursor: pointer; margin-left: auto; }
+        .del-btn { padding: 4px 12px; border: 1px solid rgba(239,68,68,0.4); border-radius: 4px; background: rgba(239,68,68,0.1); color: #f87171; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .del-btn:hover { background: rgba(239,68,68,0.3); }
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-
-    <!-- Toast notification -->
     <div id="toast" class="toast hidden"></div>
 
-    <!-- Header -->
     <div class="header">
         <div class="header-inner">
             <div class="header-top">
                 <span class="icon">🎮</span>
                 <h1>GAME LEADERBOARD</h1>
             </div>
-            <p class="subtitle">Real-time rankings powered by AWS DynamoDB + Lambda</p>
-
+            <p class="subtitle">Real-time rankings powered by AWS DynamoDB + Lambda + Cognito</p>
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('leaderboard')">🏆 Leaderboard</button>
                 <button class="tab" onclick="switchTab('submit')">⚡ Submit Score</button>
                 <button class="tab" onclick="switchTab('player')">🔍 Player Lookup</button>
+                <button class="tab" onclick="switchTab('best')">👑 Best Players</button>
                 <button class="tab" onclick="switchTab('admin')">🛡️ Admin</button>
             </div>
         </div>
     </div>
 
-    <!-- Main -->
     <div class="main">
-        <!-- Game selector -->
         <div class="game-selector">
             <span class="game-label">GAME:</span>
             <button class="game-btn active" onclick="selectGame('battle-royale')">battle-royale</button>
@@ -271,156 +119,114 @@
         </div>
 
         <!-- Leaderboard View -->
-        <div id="view-leaderboard">
-            <div class="lb-header">
-                <h2>Top Players — <span id="lb-game-name">battle-royale</span></h2>
-                <button class="refresh-btn" onclick="fetchLeaderboard()">↻ Refresh</button>
-            </div>
-            <div id="lb-content"></div>
-        </div>
+        <div id="view-leaderboard"><div class="lb-header"><h2>Top Players — <span id="lb-game-name">battle-royale</span></h2><button class="refresh-btn" onclick="fetchLeaderboard()">↻ Refresh</button></div><div id="lb-content"></div></div>
 
         <!-- Submit View -->
         <div id="view-submit" class="hidden">
             <div class="form-card">
                 <h2>⚡ Submit New Score</h2>
-                <div class="field">
-                    <label>Player ID</label>
-                    <input type="text" id="f-playerId" placeholder="e.g. p5">
-                </div>
-                <div class="field">
-                    <label>Player Name</label>
-                    <input type="text" id="f-playerName" placeholder="e.g. Sarah">
-                </div>
-                <div class="field">
-                    <label>Score</label>
-                    <input type="number" id="f-score" placeholder="e.g. 8500">
-                </div>
-                <div class="field">
-                    <label>Game</label>
-                    <select id="f-gameId">
-                        <option value="battle-royale">battle-royale</option>
-                        <option value="puzzle-quest">puzzle-quest</option>
-                        <option value="speed-racer">speed-racer</option>
-                        <option value="tower-defense">tower-defense</option>
-                    </select>
-                </div>
+                <div class="field"><label>Player ID</label><input type="text" id="f-playerId" placeholder="e.g. p5"></div>
+                <div class="field"><label>Player Name</label><input type="text" id="f-playerName" placeholder="e.g. Sarah"></div>
+                <div class="field"><label>Score</label><input type="number" id="f-score" placeholder="e.g. 8500"></div>
+                <div class="field"><label>Game</label><select id="f-gameId"><option value="battle-royale">battle-royale</option><option value="puzzle-quest">puzzle-quest</option><option value="speed-racer">speed-racer</option><option value="tower-defense">tower-defense</option></select></div>
                 <button class="submit-btn" onclick="submitScore()">SUBMIT SCORE</button>
             </div>
         </div>
 
         <!-- Player Lookup View -->
         <div id="view-player" class="hidden">
-            <div class="search-bar">
-                <input type="text" id="f-lookup" placeholder="Enter Player ID (e.g. p1)" onkeydown="if(event.key==='Enter')lookupPlayer()">
-                <button class="search-btn" onclick="lookupPlayer()">Search</button>
-            </div>
+            <div class="search-bar"><input type="text" id="f-lookup" placeholder="Enter Player ID (e.g. p1)" onkeydown="if(event.key==='Enter')lookupPlayer()"><button class="search-btn" onclick="lookupPlayer()">Search</button></div>
             <div id="player-content"></div>
+        </div>
+
+        <!-- Best Players View -->
+        <div id="view-best" class="hidden">
+            <div class="lb-header"><h2>👑 Best Players Across All Games</h2><button class="refresh-btn" onclick="fetchBestPlayers()">↻ Refresh</button></div>
+            <p style="font-size:13px; color:#64748b; margin-bottom:20px;">Auto-updated via DynamoDB Streams — no polling required.</p>
+            <div id="best-content"></div>
         </div>
 
         <!-- Admin View -->
         <div id="view-admin" class="hidden">
-            <div style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:8px; padding:12px 16px; margin-bottom:20px; display:flex; align-items:center; gap:8px;">
-                <span style="font-size:18px;">⚠️</span>
-                <span style="font-size:13px; color:#fca5a5;">Admin mode — deletions are permanent and cannot be undone.</span>
+            <!-- Login form (shown when not authenticated) -->
+            <div id="admin-login">
+                <div class="form-card">
+                    <h2>🛡️ Admin Login</h2>
+                    <p style="font-size:13px; color:#64748b; margin-bottom:20px;">Authenticate with Cognito to access admin controls.</p>
+                    <div id="auth-toggle" style="display:flex; gap:8px; margin-bottom:20px;">
+                        <button onclick="setAuthMode('login')" id="btn-login-mode" style="flex:1; padding:8px; border:1px solid #3b82f6; border-radius:6px; background:rgba(59,130,246,0.2); color:#60a5fa; font-weight:600; cursor:pointer; font-size:13px;">Login</button>
+                        <button onclick="setAuthMode('signup')" id="btn-signup-mode" style="flex:1; padding:8px; border:1px solid rgba(255,255,255,0.1); border-radius:6px; background:transparent; color:#64748b; font-weight:600; cursor:pointer; font-size:13px;">Sign Up</button>
+                    </div>
+                    <div id="signup-name-field" class="field hidden"><label>Name</label><input type="text" id="f-admin-name" placeholder="e.g. Admin User"></div>
+                    <div class="field"><label>Email</label><input type="email" id="f-admin-email" placeholder="admin@example.com"></div>
+                    <div class="field"><label>Password</label><input type="password" id="f-admin-password" placeholder="Min 8 chars, upper+lower+number" onkeydown="if(event.key==='Enter')handleAuth()"></div>
+                    <button class="login-btn" onclick="handleAuth()" id="auth-action-btn">LOGIN</button>
+                </div>
             </div>
 
-            <div class="lb-header">
-                <h2>🛡️ Manage Players — <span id="admin-game-name">battle-royale</span></h2>
-                <button class="refresh-btn" onclick="fetchAdminList()">↻ Refresh</button>
+            <!-- Admin panel (shown when authenticated) -->
+            <div id="admin-panel" class="hidden">
+                <div class="admin-logged-in">
+                    <span class="dot"></span>
+                    <span style="font-size:13px; color:#6ee7b7;">Logged in as <strong id="admin-name-display"></strong></span>
+                    <button class="logout-btn" onclick="adminLogout()">Logout</button>
+                </div>
+                <div class="admin-banner"><span>⚠️</span><span>Admin mode — deletions are permanent and cannot be undone.</span></div>
+                <div class="lb-header"><h2>🛡️ Manage Players — <span id="admin-game-name">battle-royale</span></h2><button class="refresh-btn" onclick="fetchAdminList()">↻ Refresh</button></div>
+                <div id="admin-content"></div>
             </div>
-            <div id="admin-content"></div>
         </div>
     </div>
 
-    <div class="footer">
-        Blessings & Sudan Cloud Computing — Powered by DynamoDB • Lambda • API Gateway
-    </div>
+    <div class="footer">Blessings & Sudan — Cloud Computing — Powered by DynamoDB • Lambda • API Gateway • Cognito • DynamoDB Streams</div>
 
     <script>
         const API = "https://8nu5u7m00i.execute-api.us-east-1.amazonaws.com/Prod";
         let currentGame = "battle-royale";
         let currentTab = "leaderboard";
+        let adminToken = null;
+        let adminName = null;
+        let authMode = "login";
         const MEDALS = ["🥇", "🥈", "🥉"];
+        const ALL_TABS = ["leaderboard","submit","player","best","admin"];
 
-        // ── Toast ──
-        function showToast(msg, type = "success") {
-            const t = document.getElementById("toast");
-            t.textContent = msg;
-            t.className = "toast " + type;
-            setTimeout(() => t.className = "toast hidden", 3000);
-        }
+        function showToast(msg, type = "success") { const t = document.getElementById("toast"); t.textContent = msg; t.className = "toast " + type; setTimeout(() => t.className = "toast hidden", 3000); }
 
-        // ── Tab switching ──
         function switchTab(tab) {
             currentTab = tab;
-            document.querySelectorAll(".tab").forEach((el, i) => {
-                const tabs = ["leaderboard", "submit", "player", "admin"];
-                el.classList.toggle("active", tabs[i] === tab);
-            });
-            document.getElementById("view-leaderboard").classList.toggle("hidden", tab !== "leaderboard");
-            document.getElementById("view-submit").classList.toggle("hidden", tab !== "submit");
-            document.getElementById("view-player").classList.toggle("hidden", tab !== "player");
-            document.getElementById("view-admin").classList.toggle("hidden", tab !== "admin");
-
+            document.querySelectorAll(".tab").forEach((el, i) => { el.classList.toggle("active", ALL_TABS[i] === tab); });
+            ALL_TABS.forEach(t => document.getElementById("view-" + t).classList.toggle("hidden", t !== tab));
             if (tab === "leaderboard") fetchLeaderboard();
-            if (tab === "admin") fetchAdminList();
+            if (tab === "admin" && adminToken) fetchAdminList();
+            if (tab === "best") fetchBestPlayers();
         }
 
-        // ── Game selector ──
         function selectGame(game) {
             currentGame = game;
-            document.querySelectorAll(".game-btn").forEach(el => {
-                el.classList.toggle("active", el.textContent.trim() === game);
-            });
+            document.querySelectorAll(".game-btn").forEach(el => el.classList.toggle("active", el.textContent.trim() === game));
             document.getElementById("lb-game-name").textContent = game;
             document.getElementById("admin-game-name").textContent = game;
             if (currentTab === "leaderboard") fetchLeaderboard();
-            if (currentTab === "admin") fetchAdminList();
+            if (currentTab === "admin" && adminToken) fetchAdminList();
         }
 
-        // ── Fetch Leaderboard ──
+        // ── Leaderboard ──
         async function fetchLeaderboard() {
-            const container = document.getElementById("lb-content");
-            container.innerHTML = '<div class="loading"><span class="spinner">⚡</span><br>Loading...</div>';
-
+            const c = document.getElementById("lb-content");
+            c.innerHTML = '<div class="loading"><span class="spinner">⚡</span><br>Loading...</div>';
             try {
                 const res = await fetch(`${API}/leaderboard/${currentGame}?limit=25`);
                 const data = await res.json();
                 const entries = data.entries || [];
-
-                if (entries.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty">
-                            <div class="big">🏜️</div>
-                            <p>No scores yet for <strong>${currentGame}</strong>. Submit one!</p>
-                        </div>`;
-                    return;
-                }
-
-                let html = `<div class="grid-header">
-                    <span>Rank</span><span>Player</span><span>ID</span>
-                    <span style="text-align:right">Score</span>
-                    <span style="text-align:right">Time</span>
-                </div>`;
-
+                if (entries.length === 0) { c.innerHTML = `<div class="empty"><div class="big">🏜️</div><p>No scores yet for <strong>${currentGame}</strong></p></div>`; return; }
+                let html = `<div class="grid-header"><span>Rank</span><span>Player</span><span>ID</span><span style="text-align:right">Score</span><span style="text-align:right">Time</span></div>`;
                 entries.forEach((e, i) => {
                     const cls = i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "";
                     const time = new Date(e.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-                    html += `<div class="entry ${cls}">
-                        <span class="rank ${i < 3 ? 'medal' : 'normal'}">${i < 3 ? MEDALS[i] : '#' + e.rank}</span>
-                        <span class="name ${cls}">${e.playerName}</span>
-                        <span class="pid">${e.playerId}</span>
-                        <span class="score ${i === 0 ? 'top' : ''}">${e.score.toLocaleString()}</span>
-                        <span class="time">${time}</span>
-                    </div>`;
+                    html += `<div class="entry ${cls}"><span class="rank ${i < 3 ? 'medal' : 'normal'}">${i < 3 ? MEDALS[i] : '#' + e.rank}</span><span class="name ${cls}">${e.playerName}</span><span class="pid">${e.playerId}</span><span class="score ${i === 0 ? 'top' : ''}">${e.score.toLocaleString()}</span><span class="time">${time}</span></div>`;
                 });
-
-                container.innerHTML = html;
-            } catch (err) {
-                container.innerHTML = '<div class="empty"><div class="big">❌</div><p>Failed to load leaderboard</p></div>';
-                showToast("Failed to fetch leaderboard", "error");
-            }
+                c.innerHTML = html;
+            } catch (err) { c.innerHTML = '<div class="empty"><div class="big">❌</div><p>Failed to load leaderboard</p></div>'; }
         }
 
         // ── Submit Score ──
@@ -429,196 +235,161 @@
             const playerName = document.getElementById("f-playerName").value.trim();
             const score = document.getElementById("f-score").value.trim();
             const gameId = document.getElementById("f-gameId").value;
-
-            if (!playerId || !playerName || !score) {
-                showToast("Fill in all fields", "error");
-                return;
-            }
-
+            if (!playerId || !playerName || !score) { showToast("Fill in all fields", "error"); return; }
             try {
-                const res = await fetch(`${API}/scores`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ playerId, playerName, gameId, score: parseInt(score) }),
-                });
-                const data = await res.json();
-
-                if (res.ok) {
-                    showToast(`Score submitted! ${playerName}: ${parseInt(score).toLocaleString()}`);
-                    document.getElementById("f-playerId").value = "";
-                    document.getElementById("f-playerName").value = "";
-                    document.getElementById("f-score").value = "";
-                } else {
-                    showToast(data.error || "Submission failed", "error");
-                }
-            } catch (err) {
-                showToast("Network error", "error");
-            }
+                const res = await fetch(`${API}/scores`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ playerId, playerName, gameId, score: parseInt(score) }) });
+                if (res.ok) { showToast(`Score submitted! ${playerName}: ${parseInt(score).toLocaleString()}`); document.getElementById("f-playerId").value = ""; document.getElementById("f-playerName").value = ""; document.getElementById("f-score").value = ""; }
+                else { const d = await res.json(); showToast(d.error || "Failed", "error"); }
+            } catch (err) { showToast("Network error", "error"); }
         }
 
         // ── Player Lookup ──
         async function lookupPlayer() {
             const playerId = document.getElementById("f-lookup").value.trim();
             if (!playerId) return;
-
-            const container = document.getElementById("player-content");
-            container.innerHTML = '<div class="loading">Searching...</div>';
-
+            const c = document.getElementById("player-content");
+            c.innerHTML = '<div class="loading">Searching...</div>';
             try {
-                const [rankRes, histRes] = await Promise.all([
-                    fetch(`${API}/leaderboard/${currentGame}/player/${playerId}`),
-                    fetch(`${API}/players/${playerId}/scores`),
-                ]);
-
-                const rankData = await rankRes.json();
-                const histData = await histRes.json();
-
+                const [rankRes, histRes] = await Promise.all([fetch(`${API}/leaderboard/${currentGame}/player/${playerId}`), fetch(`${API}/players/${playerId}/scores`)]);
+                const rankData = await rankRes.json(); const histData = await histRes.json();
                 let html = "";
-
-                // Rank card
                 if (rankRes.ok && rankData.found) {
-                    html += `<div class="rank-card">
-                        <h3>Rank in ${currentGame}</h3>
-                        <div class="stats">
-                            <div>
-                                <div class="stat-label">Rank</div>
-                                <div class="stat-value rank-num">#${rankData.playerRank}</div>
-                            </div>
-                            <div>
-                                <div class="stat-label">Score</div>
-                                <div class="stat-value">${rankData.playerEntry?.score?.toLocaleString() || "—"}</div>
-                            </div>
-                            <div>
-                                <div class="stat-label">Out of</div>
-                                <div class="stat-value total">${rankData.totalPlayers}</div>
-                            </div>
-                        </div>`;
-
-                    if (rankData.nearby && rankData.nearby.length > 0) {
-                        html += `<div class="nearby-title">Nearby Players</div>`;
-                        rankData.nearby.forEach(n => {
-                            const hl = n.playerId === playerId ? "highlight" : "";
-                            html += `<div class="nearby-row ${hl}">
-                                <span>#${n.rank} ${n.playerName}</span>
-                                <span class="nearby-score">${n.score.toLocaleString()}</span>
-                            </div>`;
-                        });
-                    }
+                    html += `<div class="rank-card"><h3>Rank in ${currentGame}</h3><div class="stats"><div><div class="stat-label">Rank</div><div class="stat-value rank-num">#${rankData.playerRank}</div></div><div><div class="stat-label">Score</div><div class="stat-value">${rankData.playerEntry?.score?.toLocaleString() || "—"}</div></div><div><div class="stat-label">Out of</div><div class="stat-value total">${rankData.totalPlayers}</div></div></div>`;
+                    if (rankData.nearby) { html += `<div class="nearby-title">Nearby Players</div>`; rankData.nearby.forEach(n => { html += `<div class="nearby-row ${n.playerId === playerId ? 'highlight' : ''}"><span>#${n.rank} ${n.playerName}</span><span class="nearby-score">${n.score.toLocaleString()}</span></div>`; }); }
                     html += `</div>`;
-                } else if (rankRes.ok || rankRes.status === 404) {
-                    html += `<div class="empty" style="margin-bottom:16px">
-                        <div class="big">🤷</div>
-                        <p>Player <strong>${playerId}</strong> not found in ${currentGame}</p>
-                    </div>`;
-                }
-
-                // History card
+                } else { html += `<div class="empty" style="margin-bottom:16px"><div class="big">🤷</div><p>Player not found in ${currentGame}</p></div>`; }
                 if (histRes.ok && histData.scores && histData.scores.length > 0) {
-                    html += `<div class="history-card">
-                        <h3>Score History (${histData.totalScores} total)</h3>`;
-                    histData.scores.forEach(s => {
-                        const time = new Date(s.timestamp).toLocaleString();
-                        html += `<div class="history-row">
-                            <div>
-                                <span class="history-game">${s.gameId}</span>
-                                <span class="history-time">${time}</span>
-                            </div>
-                            <span class="history-score">${s.score.toLocaleString()}</span>
-                        </div>`;
-                    });
+                    html += `<div class="history-card"><h3>Score History (${histData.totalScores} total)</h3>`;
+                    histData.scores.forEach(s => { html += `<div class="history-row"><div><span class="history-game">${s.gameId}</span><span class="history-time">${new Date(s.timestamp).toLocaleString()}</span></div><span class="history-score">${s.score.toLocaleString()}</span></div>`; });
                     html += `</div>`;
                 }
-
-                container.innerHTML = html || '<div class="empty"><div class="big">🤷</div><p>No data found</p></div>';
-            } catch (err) {
-                container.innerHTML = '<div class="empty"><div class="big">❌</div><p>Lookup failed</p></div>';
-                showToast("Lookup failed", "error");
-            }
+                c.innerHTML = html || '<div class="empty"><div class="big">🤷</div><p>No data found</p></div>';
+            } catch (err) { c.innerHTML = '<div class="empty"><div class="big">❌</div><p>Lookup failed</p></div>'; }
         }
 
-        // ── Admin: Fetch player list with delete buttons ──
-        async function fetchAdminList() {
-            const container = document.getElementById("admin-content");
-            container.innerHTML = '<div class="loading"><span class="spinner">⚡</span><br>Loading...</div>';
+        // ── Best Players (auto-updated by DynamoDB Streams) ──
+        async function fetchBestPlayers() {
+            const c = document.getElementById("best-content");
+            c.innerHTML = '<div class="loading"><span class="spinner">👑</span><br>Loading...</div>';
+            try {
+                const res = await fetch(`${API}/stats/best-players`);
+                const data = await res.json();
+                const best = data.bestPlayers || [];
+                if (best.length === 0) { c.innerHTML = `<div class="empty"><div class="big">👑</div><p>No stats yet. Submit some scores and they'll appear here automatically!</p></div>`; return; }
+                let html = "";
+                best.forEach(b => {
+                    html += `<div class="best-card"><div><div class="best-game">${b.gameId}</div><div class="best-name">🏆 ${b.playerName} <span style="font-size:12px;color:#94a3b8;font-weight:400;">(${b.playerId})</span></div></div><div class="best-score">${b.bestScore.toLocaleString()}</div></div>`;
+                });
+                c.innerHTML = html;
+            } catch (err) { c.innerHTML = '<div class="empty"><div class="big">❌</div><p>Failed to load best players</p></div>'; }
+        }
 
+        // ── Cognito Admin Auth ──
+        function setAuthMode(mode) {
+            authMode = mode;
+            document.getElementById("btn-login-mode").style.background = mode === "login" ? "rgba(59,130,246,0.2)" : "transparent";
+            document.getElementById("btn-login-mode").style.borderColor = mode === "login" ? "#3b82f6" : "rgba(255,255,255,0.1)";
+            document.getElementById("btn-login-mode").style.color = mode === "login" ? "#60a5fa" : "#64748b";
+            document.getElementById("btn-signup-mode").style.background = mode === "signup" ? "rgba(59,130,246,0.2)" : "transparent";
+            document.getElementById("btn-signup-mode").style.borderColor = mode === "signup" ? "#3b82f6" : "rgba(255,255,255,0.1)";
+            document.getElementById("btn-signup-mode").style.color = mode === "signup" ? "#60a5fa" : "#64748b";
+            document.getElementById("signup-name-field").classList.toggle("hidden", mode !== "signup");
+            document.getElementById("auth-action-btn").textContent = mode === "login" ? "LOGIN" : "CREATE ACCOUNT";
+        }
+
+        async function handleAuth() {
+            const email = document.getElementById("f-admin-email").value.trim();
+            const password = document.getElementById("f-admin-password").value.trim();
+            const name = document.getElementById("f-admin-name").value.trim();
+            if (!email || !password) { showToast("Email and password are required", "error"); return; }
+            if (authMode === "signup" && !name) { showToast("Name is required for signup", "error"); return; }
+
+            const endpoint = authMode === "login" ? "/admin/login" : "/admin/signup";
+            const body = authMode === "login" ? { email, password } : { email, password, name };
+
+            try {
+                const res = await fetch(`${API}${endpoint}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+                const data = await res.json();
+
+                if (res.ok) {
+                    if (authMode === "signup") {
+                        showToast("Account created! Logging you in...");
+                        // Auto-login after signup
+                        const loginRes = await fetch(`${API}/admin/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+                        const loginData = await loginRes.json();
+                        if (loginRes.ok) {
+                            adminToken = loginData.accessToken;
+                            adminName = name || email;
+                            showAdminPanel();
+                        }
+                    } else {
+                        adminToken = data.accessToken;
+                        adminName = email;
+                        showToast("Logged in successfully!");
+                        showAdminPanel();
+                    }
+                } else {
+                    showToast(data.error || "Authentication failed", "error");
+                }
+            } catch (err) { showToast("Network error", "error"); }
+        }
+
+        function showAdminPanel() {
+            document.getElementById("admin-login").classList.add("hidden");
+            document.getElementById("admin-panel").classList.remove("hidden");
+            document.getElementById("admin-name-display").textContent = adminName;
+            fetchAdminList();
+        }
+
+        function adminLogout() {
+            adminToken = null;
+            adminName = null;
+            document.getElementById("admin-login").classList.remove("hidden");
+            document.getElementById("admin-panel").classList.add("hidden");
+            document.getElementById("f-admin-email").value = "";
+            document.getElementById("f-admin-password").value = "";
+            showToast("Logged out");
+        }
+
+        // ── Admin: Manage Players ──
+        async function fetchAdminList() {
+            const c = document.getElementById("admin-content");
+            c.innerHTML = '<div class="loading"><span class="spinner">⚡</span><br>Loading...</div>';
             try {
                 const res = await fetch(`${API}/leaderboard/${currentGame}?limit=100`);
                 const data = await res.json();
                 const entries = data.entries || [];
-
-                if (entries.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty">
-                            <div class="big">📭</div>
-                            <p>No players in <strong>${currentGame}</strong></p>
-                        </div>`;
-                    return;
-                }
-
-                let html = `<div style="display:grid; grid-template-columns:50px 1fr 1fr 120px 100px; padding:8px 16px; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:1px;">
-                    <span>Rank</span><span>Player</span><span>ID</span>
-                    <span style="text-align:right">Score</span>
-                    <span style="text-align:center">Action</span>
-                </div>`;
-
+                if (entries.length === 0) { c.innerHTML = `<div class="empty"><div class="big">📭</div><p>No players in <strong>${currentGame}</strong></p></div>`; return; }
+                let html = `<div style="display:grid; grid-template-columns:50px 1fr 1fr 120px 100px; padding:8px 16px; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:1px;"><span>Rank</span><span>Player</span><span>ID</span><span style="text-align:right">Score</span><span style="text-align:center">Action</span></div>`;
                 entries.forEach((e, i) => {
-                    const scoreIdEncoded = encodeURIComponent(e.scoreId || "");
-                    html += `<div class="entry" id="admin-row-${i}" style="grid-template-columns:50px 1fr 1fr 120px 100px;">
-                        <span class="rank normal">#${e.rank}</span>
-                        <span class="name" style="color:#e2e8f0;">${e.playerName}</span>
-                        <span class="pid">${e.playerId}</span>
-                        <span class="score">${e.score.toLocaleString()}</span>
-                        <span style="text-align:center;">
-                            <button onclick="deletePlayer('${currentGame}', '${scoreIdEncoded}', '${e.playerName}', ${i})"
-                                style="padding:4px 12px; border:1px solid rgba(239,68,68,0.4); border-radius:4px;
-                                background:rgba(239,68,68,0.1); color:#f87171; font-size:11px; font-weight:600;
-                                cursor:pointer; transition:all 0.2s;"
-                                onmouseover="this.style.background='rgba(239,68,68,0.3)'"
-                                onmouseout="this.style.background='rgba(239,68,68,0.1)'"
-                            >Delete</button>
-                        </span>
-                    </div>`;
+                    const pkEsc = btoa(e.pk);
+                    const skEsc = btoa(e.sk);
+                    html += `<div class="entry" id="admin-row-${i}" style="grid-template-columns:50px 1fr 1fr 120px 100px;"><span class="rank normal">#${e.rank}</span><span class="name" style="color:#e2e8f0;">${e.playerName}</span><span class="pid">${e.playerId}</span><span class="score">${e.score.toLocaleString()}</span><span style="text-align:center;"><button class="del-btn" onclick="deletePlayer('${pkEsc}', '${skEsc}', '${e.playerName}', ${i})">Delete</button></span></div>`;
                 });
-
-                container.innerHTML = html;
-            } catch (err) {
-                container.innerHTML = '<div class="empty"><div class="big">❌</div><p>Failed to load players</p></div>';
-            }
+                c.innerHTML = html;
+            } catch (err) { c.innerHTML = '<div class="empty"><div class="big">❌</div><p>Failed to load</p></div>'; }
         }
 
-        // ── Admin: Delete a player's score ──
-        async function deletePlayer(gameId, scoreIdEncoded, playerName, rowIndex) {
-            if (!confirm(`Are you sure you want to delete ${playerName}'s score from ${gameId}? This cannot be undone.`)) {
-                return;
-            }
-
-            const scoreId = decodeURIComponent(scoreIdEncoded);
-
+        async function deletePlayer(pkB64, skB64, playerName, rowIndex) {
+            if (!confirm(`Delete ${playerName}'s score? This cannot be undone.`)) return;
+            const pk = atob(pkB64);
+            const sk = atob(skB64);
             try {
-                const res = await fetch(`${API}/scores/${gameId}/${encodeURIComponent(scoreId)}`, {
-                    method: "DELETE",
+                const res = await fetch(`${API}/admin/delete`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ pk, sk })
                 });
                 const data = await res.json();
-
                 if (res.ok) {
                     showToast(`Deleted ${playerName}'s score`);
                     const row = document.getElementById(`admin-row-${rowIndex}`);
-                    if (row) {
-                        row.style.opacity = "0.3";
-                        row.style.pointerEvents = "none";
-                        row.style.textDecoration = "line-through";
-                    }
-                    // Refresh after a short delay
-                    setTimeout(() => fetchAdminList(), 1000);
-                } else {
-                    showToast(data.error || "Delete failed", "error");
-                }
-            } catch (err) {
-                showToast("Network error during delete", "error");
-            }
+                    if (row) { row.style.opacity = "0.3"; row.style.pointerEvents = "none"; }
+                    setTimeout(() => fetchAdminList(), 800);
+                } else { showToast(data.error || "Delete failed", "error"); }
+            } catch (err) { showToast("Network error", "error"); }
         }
 
-        // Load leaderboard on start
         fetchLeaderboard();
     </script>
 </body>

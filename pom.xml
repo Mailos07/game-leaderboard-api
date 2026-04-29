@@ -13,36 +13,35 @@
     <description>Real-time multiplayer game leaderboard system - CSC 575/SER 375</description>
 
     <properties>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
-    <maven.compiler.release>17</maven.compiler.release>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <aws.sdk.version>2.25.0</aws.sdk.version>
-</properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <aws.sdk.version>2.25.0</aws.sdk.version>
+    </properties>
 
     <dependencies>
-        <!-- AWS Lambda core - gives us the RequestHandler interface -->
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-lambda-java-core</artifactId>
             <version>1.2.3</version>
         </dependency>
-
-        <!-- AWS Lambda events - defines APIGatewayProxyRequestEvent/Response -->
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-lambda-java-events</artifactId>
             <version>3.11.4</version>
         </dependency>
-
-        <!-- AWS SDK v2 for DynamoDB (enhanced client with annotations) -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>dynamodb-enhanced</artifactId>
             <version>${aws.sdk.version}</version>
         </dependency>
-
-        <!-- Jackson for JSON serialization/deserialization -->
+        <!-- Cognito for admin authentication -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>cognitoidentityprovider</artifactId>
+            <version>${aws.sdk.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -52,7 +51,6 @@
 
     <build>
         <plugins>
-            <!-- Shade plugin bundles everything into one fat JAR for Lambda -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>

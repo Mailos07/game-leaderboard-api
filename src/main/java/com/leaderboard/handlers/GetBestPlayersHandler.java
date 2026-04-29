@@ -9,19 +9,21 @@ import com.leaderboard.utils.DynamoDbHelper;
 import java.util.List;
 import java.util.Map;
 
-public class GetPlayerHistoryHandler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
+/**
+ * Handles GET /stats/best-players
+ * Returns the best player for each game from the auto-updated stats cache.
+ */
+public class GetBestPlayersHandler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
     private final DynamoDbHelper db = new DynamoDbHelper();
 
     @Override
     public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent request, Context context) {
         try {
-            String playerId = request.getPathParameters().get("playerId");
-            if (playerId == null || playerId.isBlank()) return ApiResponse.badRequest("playerId is required");
-
-            List<Map<String, Object>> history = db.getPlayerHistory(playerId);
-            return ApiResponse.success(Map.of("playerId", playerId, "totalScores", history.size(), "scores", history));
+            List<Map<String, Object>> bestPlayers = db.getBestPlayers();
+            return ApiResponse.success(Map.of("bestPlayers", bestPlayers, "count", bestPlayers.size()));
         } catch (Exception e) {
-            return ApiResponse.serverError("Failed to get player history: " + e.getMessage());
+            context.getLogger().log("Error getting best players: " + e.getMessage());
+            return ApiResponse.serverError("Failed to get best players: " + e.getMessage());
         }
     }
 }
