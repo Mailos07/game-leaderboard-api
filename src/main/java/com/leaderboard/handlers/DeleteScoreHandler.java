@@ -7,13 +7,10 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.leaderboard.utils.ApiResponse;
 import com.leaderboard.utils.DynamoDbHelper;
+
+import java.time.Instant;
 import java.util.Map;
 
-/**
- * Handles POST /admin/delete
- * Accepts PK and SK in the request body for reliable deletion.
- * The frontend sends the exact primary key values from the leaderboard query.
- */
 public class DeleteScoreHandler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
     private final DynamoDbHelper db = new DynamoDbHelper();
     private final ObjectMapper mapper = new ObjectMapper();
@@ -31,16 +28,27 @@ public class DeleteScoreHandler implements RequestHandler<APIGatewayProxyRequest
             if (pk == null || pk.isBlank()) return ApiResponse.badRequest("pk (partition key) is required");
             if (sk == null || sk.isBlank()) return ApiResponse.badRequest("sk (sort key) is required");
 
+            // Get source IP for audit logging
+            String sourceIp = "unknown";
+            if (request.getRequestContext() != null && request.getRequestContext().getIdentity() != null) {
+                sourceIp = request.getRequestContext().getIdentity().getSourceIp();
+            }
+
+            // Extract game and player info from keys for readable logging
+            String gameId = pk.replace("GAME#", "");
+            String playerInfo = sk.contains("#") ? sk.split("#")[3] : "unknown";
+
             boolean deleted = db.deleteScore(pk, sk);
 
             if (deleted) {
-                context.getLogger().log("Score deleted: PK=" + pk + " SK=" + sk);
+                context.getLogger().log("[ADMIN_DELETE] game=" + gameId + " player=" + playerInfo + " ip=" + sourceIp + " status=SUCCESS pk=" + pk + " sk=" + sk + " timestamp=" + Instant.now());
                 return ApiResponse.success(Map.of("message", "Score deleted successfully", "pk", pk, "sk", sk));
             } else {
+                context.getLogger().log("[ADMIN_DELETE] game=" + gameId + " player=" + playerInfo + " ip=" + sourceIp + " status=FAILED reason=not_found pk=" + pk + " sk=" + sk + " timestamp=" + Instant.now());
                 return ApiResponse.notFound("Score not found");
             }
         } catch (Exception e) {
-            context.getLogger().log("Error deleting score: " + e.getMessage());
+            context.getLogger().log("[ADMIN_DELETE] status=ERROR reason=" + e.getMessage() + " timestamp=" + Instant.now());
             return ApiResponse.serverError("Failed to delete score: " + e.getMessage());
         }
     }

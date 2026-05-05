@@ -10,12 +10,9 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
 
+import java.time.Instant;
 import java.util.Map;
 
-/**
- * Handles POST /admin/login and POST /admin/signup
- * Uses Cognito User Pool for admin authentication.
- */
 public class AdminAuthHandler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
     private final ObjectMapper mapper = new ObjectMapper();
     private final CognitoIdentityProviderClient cognito;
@@ -42,20 +39,25 @@ public class AdminAuthHandler implements RequestHandler<APIGatewayProxyRequestEv
             if (email == null || email.isBlank()) return ApiResponse.badRequest("email is required");
             if (password == null || password.isBlank()) return ApiResponse.badRequest("password is required");
 
+            // Get source IP for audit logging
+            String sourceIp = "unknown";
+            if (request.getRequestContext() != null && request.getRequestContext().getIdentity() != null) {
+                sourceIp = request.getRequestContext().getIdentity().getSourceIp();
+            }
+
             if (path.endsWith("/signup")) {
-                return handleSignup(email, password, data.get("name"), context);
+                return handleSignup(email, password, data.get("name"), sourceIp, context);
             } else {
-                return handleLogin(email, password, context);
+                return handleLogin(email, password, sourceIp, context);
             }
         } catch (Exception e) {
-            context.getLogger().log("Auth error: " + e.getMessage());
+            context.getLogger().log("[ADMIN_AUTH_ERROR] action=unknown error=" + e.getMessage() + " timestamp=" + Instant.now());
             return ApiResponse.serverError("Authentication failed: " + e.getMessage());
         }
     }
 
-    private APIGatewayProxyResponseEvent handleSignup(String email, String password, String name, Context context) {
+    private APIGatewayProxyResponseEvent handleSignup(String email, String password, String name, String sourceIp, Context context) {
         try {
-            // Create the user
             AdminCreateUserRequest createRequest = AdminCreateUserRequest.builder()
                     .userPoolId(userPoolId)
                     .username(email)
@@ -69,7 +71,6 @@ public class AdminAuthHandler implements RequestHandler<APIGatewayProxyRequestEv
                     .build();
             cognito.adminCreateUser(createRequest);
 
-            // Set permanent password immediately
             AdminSetUserPasswordRequest setPasswordRequest = AdminSetUserPasswordRequest.builder()
                     .userPoolId(userPoolId)
                     .username(email)
@@ -78,20 +79,24 @@ public class AdminAuthHandler implements RequestHandler<APIGatewayProxyRequestEv
                     .build();
             cognito.adminSetUserPassword(setPasswordRequest);
 
-            context.getLogger().log("Admin user created: " + email);
+            // Detailed audit log
+            context.getLogger().log("[ADMIN_SIGNUP] email=" + email + " name=" + (name != null ? name : "none") + " ip=" + sourceIp + " status=SUCCESS timestamp=" + Instant.now());
+
             return ApiResponse.created(Map.of("message", "Admin account created successfully", "email", email));
 
         } catch (UsernameExistsException e) {
+            context.getLogger().log("[ADMIN_SIGNUP] email=" + email + " ip=" + sourceIp + " status=FAILED reason=already_exists timestamp=" + Instant.now());
             return ApiResponse.badRequest("An account with this email already exists");
         } catch (InvalidPasswordException e) {
+            context.getLogger().log("[ADMIN_SIGNUP] email=" + email + " ip=" + sourceIp + " status=FAILED reason=invalid_password timestamp=" + Instant.now());
             return ApiResponse.badRequest("Password must be at least 8 characters with uppercase, lowercase, and numbers");
         } catch (Exception e) {
-            context.getLogger().log("Signup error: " + e.getMessage());
+            context.getLogger().log("[ADMIN_SIGNUP] email=" + email + " ip=" + sourceIp + " status=ERROR reason=" + e.getMessage() + " timestamp=" + Instant.now());
             return ApiResponse.serverError("Signup failed: " + e.getMessage());
         }
     }
 
-    private APIGatewayProxyResponseEvent handleLogin(String email, String password, Context context) {
+    private APIGatewayProxyResponseEvent handleLogin(String email, String password, String sourceIp, Context context) {
         try {
             AdminInitiateAuthRequest authRequest = AdminInitiateAuthRequest.builder()
                     .userPoolId(userPoolId)
@@ -104,10 +109,13 @@ public class AdminAuthHandler implements RequestHandler<APIGatewayProxyRequestEv
             AuthenticationResultType authResult = authResponse.authenticationResult();
 
             if (authResult == null) {
+                context.getLogger().log("[ADMIN_LOGIN] email=" + email + " ip=" + sourceIp + " status=FAILED reason=additional_auth_required timestamp=" + Instant.now());
                 return ApiResponse.badRequest("Authentication requires additional steps. Please contact admin.");
             }
 
-            context.getLogger().log("Admin login: " + email);
+            // Detailed audit log — successful login
+            context.getLogger().log("[ADMIN_LOGIN] email=" + email + " ip=" + sourceIp + " status=SUCCESS session_expires_in=" + authResult.expiresIn() + "s timestamp=" + Instant.now());
+
             return ApiResponse.success(Map.of(
                     "message", "Login successful",
                     "idToken", authResult.idToken(),
@@ -116,11 +124,13 @@ public class AdminAuthHandler implements RequestHandler<APIGatewayProxyRequestEv
             ));
 
         } catch (NotAuthorizedException e) {
+            context.getLogger().log("[ADMIN_LOGIN] email=" + email + " ip=" + sourceIp + " status=FAILED reason=invalid_credentials timestamp=" + Instant.now());
             return ApiResponse.unauthorized("Invalid email or password");
         } catch (UserNotFoundException e) {
+            context.getLogger().log("[ADMIN_LOGIN] email=" + email + " ip=" + sourceIp + " status=FAILED reason=user_not_found timestamp=" + Instant.now());
             return ApiResponse.unauthorized("No account found with this email");
         } catch (Exception e) {
-            context.getLogger().log("Login error: " + e.getMessage());
+            context.getLogger().log("[ADMIN_LOGIN] email=" + email + " ip=" + sourceIp + " status=ERROR reason=" + e.getMessage() + " timestamp=" + Instant.now());
             return ApiResponse.serverError("Login failed: " + e.getMessage());
         }
     }

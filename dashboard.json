@@ -1,0 +1,129 @@
+{
+  "widgets": [
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "Admin Login Activity",
+        "metrics": [
+          ["AWS/Lambda", "Invocations", "FunctionName", "game-leaderboard-AdminAuthFunction-fa9dw5dqFxql", {"stat": "Sum", "label": "Login/Signup Attempts"}],
+          ["AWS/Lambda", "Errors", "FunctionName", "game-leaderboard-AdminAuthFunction-fa9dw5dqFxql", {"stat": "Sum", "label": "Auth Errors", "color": "#d62728"}]
+        ],
+        "period": 300,
+        "region": "us-east-1",
+        "view": "timeSeries"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "Admin Delete Activity",
+        "metrics": [
+          ["AWS/Lambda", "Invocations", "FunctionName", "game-leaderboard-DeleteScoreFunction-tRYKRFN2og5l", {"stat": "Sum", "label": "Delete Attempts"}],
+          ["AWS/Lambda", "Errors", "FunctionName", "game-leaderboard-DeleteScoreFunction-tRYKRFN2og5l", {"stat": "Sum", "label": "Delete Errors", "color": "#d62728"}]
+        ],
+        "period": 300,
+        "region": "us-east-1",
+        "view": "timeSeries"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 6,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "Admin Auth Latency (ms)",
+        "metrics": [
+          ["AWS/Lambda", "Duration", "FunctionName", "game-leaderboard-AdminAuthFunction-fa9dw5dqFxql", {"stat": "Average", "label": "Avg Login Time"}],
+          ["AWS/Lambda", "Duration", "FunctionName", "game-leaderboard-AdminAuthFunction-fa9dw5dqFxql", {"stat": "p99", "label": "p99 Login Time", "color": "#ff7f0e"}]
+        ],
+        "period": 300,
+        "region": "us-east-1",
+        "view": "timeSeries"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 6,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "Token Verification",
+        "metrics": [
+          ["AWS/Lambda", "Invocations", "FunctionName", "game-leaderboard-VerifyTokenFunction-tO5UoswsTQVS", {"stat": "Sum", "label": "Token Verifications"}],
+          ["AWS/Lambda", "Errors", "FunctionName", "game-leaderboard-VerifyTokenFunction-tO5UoswsTQVS", {"stat": "Sum", "label": "Invalid Tokens", "color": "#d62728"}]
+        ],
+        "period": 300,
+        "region": "us-east-1",
+        "view": "timeSeries"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 6,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "All Lambda Errors",
+        "metrics": [
+          ["AWS/Lambda", "Errors", "FunctionName", "game-leaderboard-SubmitScoreFunction-MnyoFTriDGAK", {"stat": "Sum", "label": "Submit"}],
+          ["AWS/Lambda", "Errors", "FunctionName", "game-leaderboard-GetLeaderboardFunction-MUhqEuCI6Gun", {"stat": "Sum", "label": "Leaderboard"}],
+          ["AWS/Lambda", "Errors", "FunctionName", "game-leaderboard-AdminAuthFunction-fa9dw5dqFxql", {"stat": "Sum", "label": "Auth"}],
+          ["AWS/Lambda", "Errors", "FunctionName", "game-leaderboard-DeleteScoreFunction-tRYKRFN2og5l", {"stat": "Sum", "label": "Delete"}]
+        ],
+        "period": 300,
+        "region": "us-east-1",
+        "view": "timeSeries"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 12,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "Delete Latency (ms)",
+        "metrics": [
+          ["AWS/Lambda", "Duration", "FunctionName", "game-leaderboard-DeleteScoreFunction-tRYKRFN2og5l", {"stat": "Average", "label": "Avg Delete Time"}],
+          ["AWS/Lambda", "Duration", "FunctionName", "game-leaderboard-DeleteScoreFunction-tRYKRFN2og5l", {"stat": "Maximum", "label": "Max Delete Time", "color": "#d62728"}]
+        ],
+        "period": 300,
+        "region": "us-east-1",
+        "view": "timeSeries"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 12,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "Total API Invocations (All Functions)",
+        "metrics": [
+          ["AWS/Lambda", "Invocations", "FunctionName", "game-leaderboard-SubmitScoreFunction-MnyoFTriDGAK", {"stat": "Sum", "label": "Submit Score"}],
+          ["AWS/Lambda", "Invocations", "FunctionName", "game-leaderboard-GetLeaderboardFunction-MUhqEuCI6Gun", {"stat": "Sum", "label": "Get Leaderboard"}],
+          ["AWS/Lambda", "Invocations", "FunctionName", "game-leaderboard-GetPlayerRankFunction-PH5AUbncWALw", {"stat": "Sum", "label": "Player Rank"}],
+          ["AWS/Lambda", "Invocations", "FunctionName", "game-leaderboard-AdminAuthFunction-fa9dw5dqFxql", {"stat": "Sum", "label": "Admin Auth"}],
+          ["AWS/Lambda", "Invocations", "FunctionName", "game-leaderboard-DeleteScoreFunction-tRYKRFN2og5l", {"stat": "Sum", "label": "Delete Score"}],
+          ["AWS/Lambda", "Invocations", "FunctionName", "game-leaderboard-StreamProcessorFunction-LnjKZRweqN6t", {"stat": "Sum", "label": "Stream Processor"}]
+        ],
+        "period": 300,
+        "region": "us-east-1",
+        "view": "timeSeries"
+      }
+    }
+  ]
+}
